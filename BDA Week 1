@@ -1,0 +1,172 @@
+1.Change the ownership of /usr/local/hadoop to hadoop user
+$ sudo chown -R hadoop:hadoop /usr/local/hadoop
+
+2. Make two directories hdfs and htemp((Supporting Directories) under
+$HADOOP_HOME=/usr/local/hadoop has follows,
+$ cd $HADOOP_HOME
+$ mkdir hdfs htemp
+
+3. Give the ownership of these two folders to hadoop user as follows,
+$ sudo chown -R hadoop:hadoop /usr/local/hadoop/hdfs
+$ sudo chown -R hadoop:hadoop /usr/local/hadoop/htemp
+
+4. The following steps are the configuration to be done in the hadoop installation directories
+(a) Specify JAVA_HOME in hadoop-env.sh (/usr/local/hadoop/etc/hadoop)
+$ cd $HADOOP_HOME/etc/hadoop
+# Edit the hadoop-env.sh and update JAVA_HOME variable
+$ vim hadoop-env.sh
+# Add the following line in java implementation
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 #(54th line)
+# Save and exit
+(b) Modify core-site.xml($HADOOP_HOME/etc/hadoop) to setup web portal for hadoop
+$ vim core-site.sh
+# Add the following lines to it
+<configuration>
+<property>
+<name>fs.default.name</name>
+<value>hdfs://localhost:9000</value>
+<description>The default file system URI</description>
+</property>
+<property>
+<name>hadoop.tmp.dir</name>
+<value>/usr/local/hadoop/htemp</value>
+</property>
+</configuration>
+# Save and Quit
+(c) Modify hdfs-site.xml($HADOOP_HOME/etc/hadoop) to setup namenode and datanode
+path and replication factor
+<configuration>
+<property>
+<name>dfs.replication</name>
+<value>1</value>
+</property>
+<property>
+<name>dfs.name.dir</name>
+<value>file:/usr/local/hadoop/hdfs/namenode</value>
+</property>
+<property>
+<name>dfs.data.dir</name>
+<value>file:/usr/local/hadoop/hdfs/datanode</value>
+</property>
+</configuration>
+(d) Configure the mapreduce framework by editing the mapredsite.xml($HADOOP_HOME/etc/hadby adding the following lines
+<configuration>
+<property>
+<name>mapreduce.framework.name</name>
+<value>yarn</value>
+</property>
+<property>
+<name>mapreduce.application.classpath</name>
+<value>$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HO
+ME/share/hadoop/mapreduce/lib/*</value>
+</property>
+</configuration>
+(e) Configure the YARN resource manager by editing the yarn-site.xml
+<configuration>
+<property>
+<name>yarn.nodemanager.aux-services</name>
+<value>mapreduce_shuffle</value>
+</property>
+<property>
+<name>yarn.nodemanager.env-whitelist</name>
+<value>JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,
+CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME</value>
+</property>
+</configuration>
+
+5. Format the namenode using the command
+$ hdfs namenode -format
+
+6. To start the hadoop demons such as Namenode, Datanode, Resource Manager and Secondary
+Namenode, issue the following command,
+$ cd $HADOOP_HOME/sbin
+# First Method : Start individual demons
+$ ./start-dfs.sh # Starts the HDFS nodes
+$ ./start-yarn.sh # Starts the Resource Manager
+# Second Method : Start all the demons
+$./start-all.sh # Alternatively starts all the nodes
+# To stop the demons
+$ cd $HADOOP_HOME/sbin
+$ ./stop-all.sh # Stops all the running nodes
+7. Check the availability of all the nodes by typing(When hadoop nodes are running) using fol
+lowing commands,
+$ jps
+# Default Nodes to run: Hadoop is up and running
+12293 Jps
+9877 NameNode
+10085 DataNode
+10953 NodeManager
+10590 ResourceManager
+10335 SecondaryNameNode
+8. Access the Web portal for hadoop management by typing in the following IP address in the browser http://localhost:9870
+9. Check the status of the cluster in the link http://localhost:8088
+
+
+
+Setting up Hadoop
+1. Install openJDK-8
+# Remove the existing JDK
+$ sudo apt remove default-jdk default-jre openjdk-headless
+# install openjdk-8
+$ sudo apt install openjdk-8-jdk openjdk-8-jre
+# Check the installation
+$ java -version
+openjdk version "1.8.0_312"
+$ javac -version # java compiler version
+javac 1.8.0_312
+2. Adding the JDK path to the System PATH variable and informing the changes to OS
+# Open ~/.bashrc and add
+$ sudo vim ~/.bashrc (sudo apt install vim)
+#go to the last line and add the following
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export PATH=$PATH:$JAVA_HOME (esc + :wq)
+##save and exit
+## Inform the OS about the modification
+$ source ~/.bashrc
+1
+# Check the System variables by echoing them
+$ echo $PATH
+$ echo $JAVA_HOME
+3. Add a dedicated user for the HADOOP called as "hadoop" and make the user to be in sudoers
+group
+$ sudo adduser hadoop # adding a new user hadoop
+$ sudo usermod -aG sudo hadoop # making the hadoop user as sudoer
+4. Once the user is added, login to the user Hadoop to generate the ssh key for passwordless
+login (hadoop@machinename)
+$ sudo su - hadoop # Switch to the hadoop user
+$ ssh-keygen -t rsa # Create the SSH key pair
+$ cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys # Add the localhost - server + client
+$ chmod 0600 ~/.ssh/authorized_keys # Change permission of the key
+# Check the login to localhost using ssh is valid
+$ ssh localhost (install ssh if not found,sudo apt-get install openssh-client openssh-server)
+# if login successful - then connection as success - Namenode and Datanode can use this tunnel
+$ exit
+# PS: Mandatory: Once the connection is made, logout from ssh
+5. Download the latest binary from the
+https://drive.google.com/file/d/1hgQAzqUi2HaSRdX1ZnmVXEBjI04gFYHR/view?usp=sharing on to
+the download folder
+6. Extract it and move it as /usr/local/hadoop as follows,
+# Under Downloads folder
+$ tar -xvzf hadoop-3.1.4.tar.gz
+$ sudo mv hadoop-3.1.4 /usr/local/hadoop # rename and place the folder under /usr/local
+7. Setup the dedicated PATH variables for Hadoop as hadoop-java.sh as follows,
+# PS: Make sure the user is hadoop
+$ sudo vim /etc/profile.d/hadoop_java.sh
+# Add the following lines
+export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export HADOOP_HOME=/usr/local/hadoop
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+export HADOOP_OPTS="$HADOOP_OPTS
+-Djava.library.path=$HADOOP_HOME/lib/native" # Save and exit
+# Source the file to update the changes to OS
+2
+$ source /etc/profile.d/hadoop_java.sh
+8. Confirm your hadoop and hdfs version
+$ hadoop version
+Hadoop 3.1.4
+$ hdfs version
